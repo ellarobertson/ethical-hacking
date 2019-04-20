@@ -36,20 +36,45 @@ import os
 if os.geteuid() != 0:
     print("\nYou must run this script as a root user.\n")
 
-    #should delete following reponse/if statement later
+    # should delete following reponse/if statement later
     response = input("Continue anyway for script testing purposes? y/n ")
     if response != "y":
         exit(0)
 
 def nmap_scan():
     ip_addr = input("Type in the IP range you would like to scan: ")
+    cmd = "nmap -n --open " + ip_addr + " -p80,443"
     try:
-        os.system("nmap -n --open " + ip_addr + " -p80,443")
+        os.system(cmd)
+        #we should probably parse nmap output to see if there were zero hosts that were found
+        #if no hosts were found, give the option to run nmap scan again.
+
         #cmd = "ifconfig | grep mon | awk -F ':' '{print $1}' | awk '{print $1}'"
         #int_name = str(os.popen(cmd).read()).strip('\n')
         #return int_name
     except KeyboardInterrupt:
         print ("nmap scan failed. Run script again.")
+    
+    #ask user to input a website from the nmap command output. Maybe do a check to ensure that whatever they put was output from the nmap command?
+    webserver = input("Webserver to attack: ")
+    return webserver
+
+def gobuster(webserver):
+    #maybe os.mkdir for a new gobuster output folder to make it sexier?
+    #create standard file for gobust output?
+    #instead of hardcoding ask user to write path to pw cracking file?????
+    cmd = "gobuster -o gobust.txt -u" + webserver + "-w /usr/share/wordlists/dirb/common.txt"
+    try:
+        os.system(cmd)
+        #we should probably parse nmap output to see if there were zero hosts that were found
+        #if no hosts were found, give the option to run nmap scan again.
+
+        #cmd = "ifconfig | grep mon | awk -F ':' '{print $1}' | awk '{print $1}'"
+        #int_name = str(os.popen(cmd).read()).strip('\n')
+        #return int_name
+    except KeyboardInterrupt:
+        print ("nmap scan failed. Run script again.")
+
 
 '''
 def network_teardown(int_name):
@@ -85,10 +110,12 @@ def deauth_bomb(int_name, number_deauth_packets):
     except KeyboardInterrupt:
         return bssid
 '''
-
 if __name__ == "__main__":
-    #Should probably have a logo/title or something at the top
-    nmap_scan()
+     # ASCII art for tool name? Option to show user instructions and purpose of project?
+    webserver = nmap_scan() # should we clean up nmap output? put output in a seperate file? Give a warning to user when zero hosts are found?
+    gobuster(webserver)
+    
+
 
 '''
     os.system("rm testcap*")
