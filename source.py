@@ -69,6 +69,25 @@ def gobuster(webserver):
     except KeyboardInterrupt:
         print ("Gobuster failed. Run script again")
 
+def sqlmap_options_output():
+    options = ["id parameter", "option page"]
+    print("Which option would you like to use in SQLMap? Please type the corresponding type number\n")
+    int counter = 1
+    for option in options:
+        print(counter + option + "\n")
+        counter++
+
+def sqlmap(webserver):
+    injection_options = ["?id=1", "NOT available"]
+    hidden_path = input("What hidden path would you like to SQL inject? ")
+    inject_options_output()
+    option_chosen = input()
+    cmd = "sqlmap -u " + webserver + hidden_path + injection_options[option_chosen - 1]
+    try:
+        os.system(cmd)
+    except KeyboardInterrupt:
+        print ("Gobuster failed. Run script again")
+
 
 '''
 def network_teardown(int_name):
@@ -108,6 +127,7 @@ if __name__ == "__main__":
      # ASCII art for tool name? Option to show user instructions and purpose of project?
     webserver = nmap_scan() # should we clean up nmap output? put output in a seperate file? Give a warning to user when zero hosts are found?
     gobuster(webserver)
+    sqlmap(webserver)
     
 
 
