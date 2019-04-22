@@ -63,17 +63,11 @@ def gobuster(webserver):
     #maybe os.mkdir for a new gobuster output folder to make it sexier?
     #create standard file for gobust output?
     #instead of hardcoding ask user to write path to pw cracking file?????
-    cmd = "gobuster -o gobust.txt -u" + webserver + "-w /usr/share/wordlists/dirb/common.txt"
+    cmd = "gobuster -o gobust.txt -u " + webserver + " -w /usr/share/wordlists/dirb/common.txt"
     try:
         os.system(cmd)
-        #we should probably parse nmap output to see if there were zero hosts that were found
-        #if no hosts were found, give the option to run nmap scan again.
-
-        #cmd = "ifconfig | grep mon | awk -F ':' '{print $1}' | awk '{print $1}'"
-        #int_name = str(os.popen(cmd).read()).strip('\n')
-        #return int_name
     except KeyboardInterrupt:
-        print ("nmap scan failed. Run script again.")
+        print ("Gobuster failed. Run script again")
 
 
 '''
