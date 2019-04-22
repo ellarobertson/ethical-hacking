@@ -83,7 +83,7 @@ def sqlmap(webserver):
     inject_options_output()
     option_chosen = int(input())
     base_cmd = "sqlmap -u " + webserver + hidden_path + injection_options[option_chosen - 1]
-    cmd = base_cmd " --dbs"
+    cmd = base_cmd + " --dbs"
     database_stuff(code_cmd)
     try:
         os.system(cmd)
