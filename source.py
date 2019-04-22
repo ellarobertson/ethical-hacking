@@ -101,20 +101,33 @@ def database_search(base_cmd):
 
 def table_dump(base_cmd, database):
     table = input("What table would you like to attack? ")
-    cmd = base_cmd + " --dump -D " + database +  " -T " + table + " > output.txt"
+    cmd = base_cmd + " --dump -D " + database +  " -T " + table
     try:
         os.system(cmd)
     except KeyboardInterrupt:
         print ("SQLMap - search for database table failed. Run script again")
 
-    
+def intro():
+    ascii_title =  "____   __   __       ___   __  \n/ ___) /  \ (  )     / __) /  \ \n\___ \(  O )/ (_/\  ( (_ \(  O )\n(____/ \__\)\____/   \___/ \__/      \n\n"
+    print(ascii_title)
+    response = input("Type 'help' for information, anything else to continue to application") 
 
+def help():
+    print("PRINT INFO ABOUT PROJECT HERE!!!!!")
 
-
-if __name__ == "__main__":
-     # ASCII art for tool name? Option to show user instructions and purpose of project?
+def execute_sqlgo():
     webserver = nmap_scan() # should we clean up nmap output? put output in a seperate file? Give a warning to user when zero hosts are found?
     gobuster(webserver)
     base_cmd = sqlmap(webserver)
     database = database_search(base_cmd)
     table_dump(base_cmd, database)
+
+if __name__ == "__main__":
+     # ASCII art for tool name? Option to show user instructions and purpose of project?
+    response = intro()
+    if response == "help":
+        help()
+    else:
+        execute_sqlgo()
+
+
