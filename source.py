@@ -102,7 +102,6 @@ def database_search(base_cmd):
 def table_dump(base_cmd, database):
     table = input("What table would you like to attack? ")
     cmd = base_cmd + " --dump -D " + database +  " -T " + table + " > output.txt"
-    print("HERE, PRINT WHERE DUMP FILE IS LOCATED")
     try:
         os.system(cmd)
     except KeyboardInterrupt:
