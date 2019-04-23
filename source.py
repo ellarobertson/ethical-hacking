@@ -58,7 +58,6 @@ def sqlmap(webserver):
     option_chosen = int(input())
     base_cmd = "sqlmap -u " + "\"" + webserver + hidden_path + "/" + injection_options[option_chosen - 1] + "\""
     cmd = base_cmd + " --dbs"
-    print(cmd)
     try:
         os.system(cmd)
     except KeyboardInterrupt:
@@ -85,11 +84,12 @@ def table_dump(base_cmd, database):
 def intro():
     ascii_title =  "____   __   __       ___   __  \n/ ___) /  \ (  )     / __) /  \ \n\___ \(  O )/ (_/\  ( (_ \(  O )\n(____/ \__\)\____/   \___/ \__/      \n\n"
     print(ascii_title)
-    response = input("Type 'info' for information, anything else to continue to application") 
+    response = input("Type 'info' for information, anything else to continue to application: ") 
+    return response
 
 def info():
     print("This tool:\n1) pings the desired network range for live hosts,\n2) scans for ports 80, 443 for web servers,\n3) uses Gobuster to show any hidden files and directories,\n4) tries to perform SQLMap on those hidden web pages if they contain forms or any kind of user input.")
-    response = input("Type 'c' to continue to application, anything else to quit.")
+    response = input("Type 'c' to continue to application, anything else to quit: ")
     if response == "c":
         execute_sqlgo()
     else:
