@@ -7,31 +7,9 @@ This tool will test if any hidden paths of the web application is vulnerable to 
  1) ping the desired network range for live hosts,
  2) scan for ports 80, 443 for web servers,
  3) use Dirbuster to show any hidden files and directories,
- 4) try to perform SQLMap on those hidden web pages if they contain forms or any kind of user input.
-
-
-1.) Sqler [range]
-    - Nmap the range and scan for ports 80, 443
-    - Return a list of webservers
-    - Ask which one you want to proceed
-    - Input: “dvwa.com ip address”
-    https://medium.com/@TheShredder/create-your-ethical-hacking-environment-install-dvwa-into-your-kali-linux-4783282dea6a
-    https://www.yeahhub.com/install-dvwa-kali-linux/
-2.) Use gobuster
-    - Get the data back somehow?????
-    - Run gobuster -o <file> – specify a file name to write the output to.
-3.) Perform sqlmap on those paths in that output file from step 2
-    - Login page
-            -Use sqlmap on forms
-    - Id parameter inside the url
-
-CODE BELOW IS AN EXAMPLE OF A PAST PROJECT TO GIVE US STRUCTURE FOR UTILIZING
-COMMAND LINE.
-'''
+ 4) try to perform SQLMap on those hidden web pages if they contain forms or any kind of user input.'''
 
 import os
-#import subprocess
-#from time import sleep
 
 if os.geteuid() != 0:
     print("\nYou must run this script as a root user.\n")
@@ -49,9 +27,6 @@ def nmap_scan():
         #we should probably parse nmap output to see if there were zero hosts that were found
         #if no hosts were found, give the option to run nmap scan again.
 
-        #cmd = "ifconfig | grep mon | awk -F ':' '{print $1}' | awk '{print $1}'"
-        #int_name = str(os.popen(cmd).read()).strip('\n')
-        #return int_name
     except KeyboardInterrupt:
         print ("nmap scan failed. Run script again.")
     
@@ -60,9 +35,7 @@ def nmap_scan():
     return webserver
 
 def gobuster(webserver):
-    #maybe os.mkdir for a new gobuster output folder to make it sexier?
-    #create standard file for gobust output?
-    #instead of hardcoding ask user to write path to pw cracking file?????
+    #OS MKDIR TO INCLUDE OUR FOLDER FOR THIS APPLICATION
     cmd = "gobuster -o gobust.txt -u " + webserver + " -w /usr/share/wordlists/dirb/common.txt"
     try:
         os.system(cmd)
@@ -79,7 +52,7 @@ def inject_options_output():
     print("\nPlease type the corresponding type number: ")
 
 def sqlmap(webserver):
-    injection_options = ["?id=1&Submit=Submit#", "NOT available"]
+    injection_options = ["?id=1", "NOT available"]
     hidden_path = input("What hidden path would you like to SQL inject? ")
     inject_options_output()
     option_chosen = int(input())
@@ -112,10 +85,15 @@ def table_dump(base_cmd, database):
 def intro():
     ascii_title =  "____   __   __       ___   __  \n/ ___) /  \ (  )     / __) /  \ \n\___ \(  O )/ (_/\  ( (_ \(  O )\n(____/ \__\)\____/   \___/ \__/      \n\n"
     print(ascii_title)
-    response = input("Type 'help' for information, anything else to continue to application") 
+    response = input("Type 'info' for information, anything else to continue to application") 
 
-def help():
-    print("PRINT INFO ABOUT PROJECT HERE!!!!!")
+def info():
+    print("This tool:\n1) pings the desired network range for live hosts,\n2) scans for ports 80, 443 for web servers,\n3) uses Gobuster to show any hidden files and directories,\n4) tries to perform SQLMap on those hidden web pages if they contain forms or any kind of user input.")
+    response = input("Type 'c' to continue to application, anything else to quit.")
+    if response == "c":
+        execute_sqlgo()
+    else:
+        exit(0)
 
 def execute_sqlgo():
     webserver = nmap_scan() # should we clean up nmap output? put output in a seperate file? Give a warning to user when zero hosts are found?
@@ -125,10 +103,9 @@ def execute_sqlgo():
     table_dump(base_cmd, database)
 
 if __name__ == "__main__":
-     # ASCII art for tool name? Option to show user instructions and purpose of project?
     response = intro()
-    if response == "help":
-        help()
+    if response == "info":
+        info()
     else:
         execute_sqlgo()
 
