@@ -1,14 +1,5 @@
 #!/usr/bin/env python
 
-'''
-The purpose of our tool is to automate web application reconnaissance and SQL Injection.
-This tool will test if any hidden paths of the web application is vulnerable to SQL injection.
- Our proposed tool would
- 1) ping the desired network range for live hosts,
- 2) scan for ports 80, 443 for web servers,
- 3) use Dirbuster to show any hidden files and directories,
- 4) try to perform SQLMap on those hidden web pages if they contain forms or any kind of user input.'''
-
 import os
 
 if os.geteuid() != 0:
@@ -21,9 +12,10 @@ if os.geteuid() != 0:
 
 def nmap_scan():
     ip_addr = input("\nLet's look for some web servers to attack! \nType in the IP range you would like to scan: ")
-    cmd = "nmap -n --open " + ip_addr + " -p80,443"
+    cmd = "nmap -n --open " + ip_addr + " -p80,443  -sV > /usr/share/sqlgo/nmapoutput.txt"
     try:
         os.system(cmd)
+        parseNmapOutput()
         #we should probably parse nmap output to see if there were zero hosts that were found
         #if no hosts were found, give the option to run nmap scan again.
 
@@ -33,6 +25,13 @@ def nmap_scan():
     #ask user to input a website from the nmap command output. Maybe do a check to ensure that whatever they put was output from the nmap command?
     webserver = input("\nNow, let's look for hidden paths in the webserver that could be exploitable!\nType in the webserver you would like to attack: ")
     return webserver
+
+def parseNmapOutput():
+    s = open("/usr/share/sqlgo/nmapoutput.txt").read()
+    line_iter = iter(s.splitLines())
+
+    
+
 
 def gobuster(webserver):
     #OS MKDIR TO INCLUDE OUR FOLDER FOR THIS APPLICATION
@@ -96,6 +95,14 @@ def info():
         exit(0)
 
 def execute_sqlgo():
+    if(os.path.exists('/usr/share/sqlgo/')): #clears folder if it exists to avoid having information from two seperate application runs
+        cmd = "rm -r /usr/share/sqlgo"
+        try:
+            os.system(cmd)
+        except KeyboardInterrupt:
+            print ("Deleting folder failed - fix this")
+    os.mkdir('/usr/share/sqlgo')
+
     webserver = nmap_scan() # should we clean up nmap output? put output in a seperate file? Give a warning to user when zero hosts are found?
     gobuster(webserver)
     base_cmd = sqlmap(webserver)
@@ -108,5 +115,3 @@ if __name__ == "__main__":
         info()
     else:
         execute_sqlgo()
-
-
