@@ -27,8 +27,22 @@ def nmap_scan():
     return webserver
 
 def parseNmapOutput():
-    s = open("/usr/share/sqlgo/nmapoutput.txt").read()
-    line_iter = iter(s.splitLines())
+    s = open("/usr/share/sqlgo/nmapoutput.txt", "r")
+    count = 0
+    line_iter = iter(s)
+
+    for line in line_iter:
+        count += 1
+        flag = True
+        if "Nmap scan report for " in line:
+            arr = line.split()
+            print(arr[-1])
+ 
+        if "Host is up " not in line and len(line) != 1 and "Not shown" not in line and "Nmap" not in line and "Service" not in line:
+            print(line)
+    if count == 2 or count == 3:
+        result = "No hosts found."
+        return result
 
     
 
@@ -51,12 +65,13 @@ def inject_options_output():
     print("\nPlease type the corresponding type number: ")
 
 def sqlmap(webserver):
-    injection_options = ["?id=1", "NOT available"]
+    injection_options = ["?id=1&Submit=Submit#", "NOT available"]
     hidden_path = input("What hidden path would you like to SQL inject? ")
     inject_options_output()
     option_chosen = int(input())
-    base_cmd = "sqlmap -u " + "\"" + webserver + hidden_path + "/" + injection_options[option_chosen - 1] + "\""
+    base_cmd = "sqlmap -u " + "\"http://" + webserver + hidden_path + "/" + injection_options[option_chosen - 1] + "\""
     cmd = base_cmd + " --dbs"
+    print(cmd)
     try:
         os.system(cmd)
     except KeyboardInterrupt:
