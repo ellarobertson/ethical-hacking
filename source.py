@@ -71,7 +71,6 @@ def sqlmap(webserver):
     option_chosen = int(input())
     base_cmd = "sqlmap -u " + "\"http://" + webserver + hidden_path + "/" + injection_options[option_chosen - 1] + "\""
     cmd = base_cmd + " --dbs"
-    print(cmd)
     try:
         os.system(cmd)
     except KeyboardInterrupt:
