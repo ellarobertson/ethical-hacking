@@ -39,7 +39,6 @@ def nmap_scan():
     print('Now, lets look for hidden paths in the webserver that could be exploitable')
     webserver = input('Type the number of the IP that you would like to attack: ')
 
-    print(webserver)
     return webserver
 
 
@@ -84,6 +83,9 @@ def parseNmapOutput():
 
 def gobuster(webserver):
     #OS MKDIR TO INCLUDE OUR FOLDER FOR THIS APPLICATION
+    if(os.path.exists('/usr/share/sqlgo/gobust.txt')): #clears folder if it exists to avoid having information from two seperate application runs
+        os.system("rm /usr/share/sqlgo/gobust.txt")
+
     cmd = "gobuster -o /usr/share/sqlgo/gobust.txt -u " + webserver + " -w /usr/share/wordlists/dirb/common.txt > /usr/share/sqlgo/gobusteroutput.txt"
     try:
         os.system(cmd)
@@ -99,15 +101,14 @@ def gobuster(webserver):
             print("Hidden paths in the given webserver:")
             os.system(resultstr)
             print()
-            return resultstr, "ok"
+            return resultstr, webserver
     except KeyboardInterrupt:
         print ("Gobuster failed. Run script again")
 
 def parseBuster():
-    s = open("/usr/share/sqlgo/gobust.txt", "r")
-    string = s.read()
-    result = []
-    if len(string) == 0:
+    count = len(open("/usr/share/sqlgo/gobusteroutput.txt").readlines())
+    if count < 15:
+        print()
         print("Unable to connect to given webserver.")
         return "error"
     else:
@@ -344,7 +345,7 @@ def execute_sqlgo():
     pathlist, response = gobuster(webserver)
     while pathlist == "error":
         pathlist, response = gobuster(response)
-        webserver = response
+    webserver = response
     hidden_path = getHiddenPath()
 
     option_chosen = inject_options_output()
@@ -379,4 +380,3 @@ if __name__ == "__main__":
         info()
     else:
         execute_sqlgo()
-
