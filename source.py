@@ -193,11 +193,12 @@ def parseSqlMap():
 
 
 def parseCurl():
-    s = open("/usr/share/sqlgo/curloutput.txt", "r")
+    with open("/usr/share/sqlgo/curloutput.txt", encoding="utf8", errors='ignore') as f:
+        contents = f.readlines()
     result = []
     resultstr = "\""
-    line_iter = iter(s)
-    for line in line_iter:
+
+    for line in contents:
         if "name" in line:
             s = line.split("\"")
             for word in s:
@@ -211,6 +212,7 @@ def parseCurl():
         resultstr = resultstr + param + "=1&"
     resultstr += "\""
     return resultstr
+
 
 """
 def parseCookie():
@@ -380,3 +382,4 @@ if __name__ == "__main__":
         info()
     else:
         execute_sqlgo()
+
