@@ -356,7 +356,7 @@ def info():
         exit(0)
 
 def output_file():
-    response = input("Would you like to create a report including nmap, gobuster, and SQLMAP scans? Type 'y' for yes, anything else for no")
+    response = input("Would you like to create a report that includes the full nmap, gobuster, and SQLMAP scans? Type 'y' for yes, anything else for no: ")
     if response == "y":
 
         f = open('/usr/share/sqlgo/sqlgo_report.txt', 'w+')
@@ -388,6 +388,9 @@ def output_file():
 
         f.write("END OF REPORT")
 
+        print()
+        print("Report created. The path to the report is: /usr/share/sqlgo/sqlgo_report.txt. Goodbye!")
+
 
 
 def execute_sqlgo():
@@ -415,17 +418,28 @@ def execute_sqlgo():
     base_cmd, database_list = sqlmap(webserver, hidden_path, option_chosen)
     while base_cmd == "error":
         if flag[0] and flag[1] and flag[2]:
+            print()
             print("All options of SQLMap have been chosen. This path is not vulnerable to SQL injection.")
             userinput = input("Press 'q' to quit the application or anything to display the hidden paths again: ")
             if userinput == 'q':
                 exit(0)
             else:
+                print()
                 os.system("cat /usr/share/sqlgo/gobust.txt")
                 flag = [False, False, False]
+                print()
                 hidden_path = getHiddenPath()
+
         option_chosen=inject_options_output()
         base_cmd, database_list = sqlmap(webserver, hidden_path, option_chosen)
 
+    print("Success. This hidden path is vulnerable to SQL Injection.")
+    if option_chosen == "1":
+        print("We successfully exploited vulnerable input parameters.\n")
+    if option_chosen == "2":
+        print("We successfully exploited form-based SQL Injection.\n")
+    if option_chosen == "3":
+        print("We successfully bypassed login authentication.\n")
 
     status, tables = database_search(base_cmd, database_list)
     while status == "error":
