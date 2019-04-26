@@ -36,11 +36,14 @@ def nmap_scan():
     for host in nm.all_hosts():
         num+= 1
         print ('---------------------------')
-        print ([num], host, '| State:', nm[host].state(), ' | Version:', nm[host]['tcp'][80]['product'], nm[host]['tcp'][80]['version'], nm[host]['tcp'][80]['extrainfo'])
+        if 80 in nm[host]['tcp']:
+            print ([num], host, '| State:', nm[host].state(), ' | Version:', nm[host]['tcp'][80]['product'], nm[host]['tcp'][80]['version'], nm[host]['tcp'][80]['extrainfo'])
+        else:
+            print ([num], host, '| State:', nm[host].state())
     print()
 
     print('Now, lets look for hidden paths in the webserver that could be exploitable')
-    webserver = input('Type the number of the IP that you would like to attack: ')
+    webserver = input('Type the IP Address that you would like to attack: ')
 
     return webserver
 
