@@ -7,12 +7,9 @@ flag = [False, False, False]
 
 if os.geteuid() != 0:
     print("\nYou must run this script as a root user.\n")
-
-    # should delete following reponse/if statement later
     response = input("Continue anyway for script testing purposes? y/n ")
     if response != "y":
         exit(0)
-
 
 
 def nmap_scan():
@@ -23,9 +20,7 @@ def nmap_scan():
     nm.scan(hosts = ip_addr, arguments = '--open -n -sV -p80,443')
     num = 0
 
-
-
-    #exit if nothing scanned
+    #exit if no web servers found
     if  len(nm.all_hosts()) == 0:
         print()
         response = input("No hosts found. Please use another IP range.\nPress 'q' to quit or anything to start over: ")
@@ -57,7 +52,7 @@ def nmap_scan():
 
 
 def gobuster(webserver):
-    #OS MKDIR TO INCLUDE OUR FOLDER FOR THIS APPLICATION
+
     if(os.path.exists('/usr/share/sqlgo/gobust.txt')): #clears folder if it exists to avoid having information from two seperate application runs
         os.system("rm /usr/share/sqlgo/gobust.txt")
 
@@ -106,16 +101,6 @@ def inject_options_output():
     return option
 
 def sqlmap(webserver, hidden_path, option_chosen):
-
-    """
-    option2 = " "
-    if(webserver == "10.0.2.15/bWAPP"):
-        os.system("wget --save-cookies /usr/share/sqlgo/cookies.txt --keep-session-cookies  --post-data 'login=bee&password=bug&security_level=0&form=submit'      http://10.0.2.15/bWAPP/login.php 1>wget.txt 2>wget.txt")
-        cookie = parseCookie()
-        option2 = "--cookie=\"PHPSESSID=" + cookie + ";security_level=0\" " + " --data=\"login=test&password=test&form=submit\""
-    """
-
-
     global flag
 
     result = ""
@@ -145,8 +130,6 @@ def sqlmap(webserver, hidden_path, option_chosen):
 
     cmd = base_cmd + " --dbs  --batch " + " > /usr/share/sqlgo/sqlmapoutput.txt"
 
-
-    #print(cmd)
     try:
         os.system(cmd)
         resultstr = parseSqlMap()
@@ -206,17 +189,6 @@ def parseCurl():
     resultstr += "\""
     return resultstr
 
-
-"""
-def parseCookie():
-    s = open("/usr/share/sqlgo/cookies.txt", "r")
-    line_iter = iter(s)
-    for line in line_iter:
-        if "PHPSESSID" in line:
-            arr = line.split()
-            cookie = arr[-1]
-            return cookie
-"""
 
 def database_search(base_cmd, database_list):
     database = input("Let's look inside the databases. We will start by displaying its tables. \nChoose a database to assess: ")
